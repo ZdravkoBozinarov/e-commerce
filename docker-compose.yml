@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: clothing-db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: clothing_store
+      TZ: Europe/Kyiv
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - clothing-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: clothing-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      TZ: Europe/Kyiv
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+    networks:
+      - clothing-net
+
+volumes:
+  postgres_data:
+
+networks:
+  clothing-net:
