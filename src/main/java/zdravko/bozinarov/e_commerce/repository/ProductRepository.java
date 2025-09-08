@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -22,6 +23,23 @@ public class ProductRepository {
                         rs.getString("image_url")
                 ),
                 limit
+        );
+    }
+
+    public int countAll() {
+        Integer c = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM products", Integer.class);
+        return c == null ? 0 : c;
+    }
+
+    public void ensureOptionalColumns() {
+        jdbcTemplate.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS image_url TEXT");
+        jdbcTemplate.execute("ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INT NOT NULL DEFAULT 100");
+    }
+
+    public void insert(String name, String description, BigDecimal price, String imageUrl, int stock) {
+        jdbcTemplate.update(
+                "INSERT INTO products(name, description, price, image_url, stock) VALUES (?,?,?,?,?)",
+                name, description, price, imageUrl, stock
         );
     }
 

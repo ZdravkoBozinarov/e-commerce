@@ -11,15 +11,28 @@ import java.util.List;
 public class CartRepository {
     private final JdbcTemplate jdbcTemplate;
 
-    public void upsert(long userId, long productId, int qty) {
-        jdbcTemplate.update("""
-            INSERT INTO cart_items(user_id,product_id,qty) VALUES (?,?,?)
-            ON CONFLICT(user_id,product_id) DO UPDATE SET qty=cart_items.qty+EXCLUDED.qty
-        """, userId, productId, qty);
+    public List<Item> list(long userId) {
+        return jdbcTemplate.query("""
+            SELECT c.product_id, p.name, p.price, c.qty, COALESCE(p.image_url,'') AS image_url
+            FROM cart_items c
+            JOIN products p ON p.product_id = c.product_id
+            WHERE c.user_id = ?
+            ORDER BY p.product_id DESC
+        """, (rs, i) -> new Item(
+                rs.getInt("product_id"),
+                rs.getString("name"),
+                rs.getBigDecimal("price"),
+                rs.getInt("qty"),
+                rs.getString("image_url")
+        ), userId);
     }
 
-    public void setQty(long userId, long productId, int qty) {
-        jdbcTemplate.update("UPDATE cart_items SET qty=? WHERE user_id=? AND product_id=?", qty, userId, productId);
+    public void upsert(long userId, long productId, int qty) {
+        jdbcTemplate.update("""
+            INSERT INTO cart_items(user_id, product_id, qty)
+            VALUES (?,?,?)
+            ON CONFLICT (user_id, product_id) DO UPDATE SET qty = cart_items.qty + EXCLUDED.qty
+        """, userId, productId, qty);
     }
 
     public void remove(long userId, long productId) {
@@ -30,24 +43,10 @@ public class CartRepository {
         jdbcTemplate.update("DELETE FROM cart_items WHERE user_id=?", userId);
     }
 
-    public List<CartRow> list(long userId) {
-        return jdbcTemplate.query("""
-            SELECT c.product_id,c.qty,p.name,p.price
-            FROM cart_items c JOIN products p ON p.id=c.product_id
-            WHERE c.user_id=?
-        """, (rs,i) -> new CartRow(
-                rs.getLong("product_id"),
-                rs.getInt("qty"),
-                rs.getString("name"),
-                rs.getBigDecimal("price")
-        ), userId);
-    }
-
-    public record CartRow(long productId,int qty,String name,java.math.BigDecimal price){}
-
     public int count(long userId) {
         Integer c = jdbcTemplate.queryForObject("SELECT COALESCE(SUM(qty),0) FROM cart_items WHERE user_id=?", Integer.class, userId);
         return c == null ? 0 : c;
     }
 
+    public record Item(int productId, String name, java.math.BigDecimal price, int qty, String imageUrl) {}
 }
