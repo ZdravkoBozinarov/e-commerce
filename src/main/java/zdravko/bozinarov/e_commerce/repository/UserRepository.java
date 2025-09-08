@@ -46,4 +46,16 @@ public class UserRepository {
         user.setUserId(id);
         return user;
     }
+
+    public void updateCredentialsByEmail(String email, String hash, String role) {
+        jdbcTemplate.update("UPDATE users SET password_hash=?, role=? WHERE email=?", hash, role, email);
+    }
+    public void updatePasswordById(Long id, String hash) {
+        jdbcTemplate.update("UPDATE users SET password_hash=? WHERE id=?", hash, id);
+    }
+
+    public Long getIdByEmail(String email) {
+        return jdbcTemplate.queryForObject("SELECT user_id FROM users WHERE email=?", Long.class, email);
+    }
+
 }
